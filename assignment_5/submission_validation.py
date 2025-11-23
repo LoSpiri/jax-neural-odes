@@ -2,7 +2,7 @@
 import numpy as np
 
 # Load the archive
-fname = 'umur.npz' 
+fname = 'maxim_and_lorenzo.npz' 
 archive = np.load(f'{fname}')
 
 # Define the expected keys and shape
@@ -21,3 +21,4 @@ for key, value in archive.items():
     assert value.shape == expected_shape, s_shape
 
 print("All tests passed, ready for submission")
+# %%
