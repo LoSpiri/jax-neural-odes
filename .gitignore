@@ -8,3 +8,7 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Sepsis dataset
+assignment_6/time_series
+assignment_6/labels*
