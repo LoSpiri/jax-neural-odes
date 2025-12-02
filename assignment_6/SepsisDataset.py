@@ -2,7 +2,21 @@ import os
 import pandas as pd
 from tqdm.notebook import tqdm
 import matplotlib.pyplot as plt
+from jax import numpy as jnp
 
+class Subset:
+    def __init__(self, dataset, start_idx, end_idx):
+        self.dataset = dataset
+        self.start_idx = start_idx
+        self.end_idx = end_idx
+        
+    def __len__(self):
+        return self.end_idx - self.start_idx
+    
+    def __getitem__(self, idx):
+        if idx < 0 or idx >= len(self):
+            raise IndexError("Index out of range")
+        return self.dataset[self.start_idx + idx]
 
 class SepsisDataset:
     def __init__(self):
@@ -41,13 +55,37 @@ class SepsisDataset:
         self.demographic_columns = ['Age', 'Gender', 'Unit1', 'Unit2', 'HospAdmTime', 'ICULOS']
         
         self.time_series_data = {}
+        self.time_series_data_processed = {}
         for filename in tqdm(os.listdir(time_series_dir)):
             if filename.endswith('.csv'):
                 file_path = os.path.join(time_series_dir, filename)
                 df = pd.read_csv(file_path, header=None, names=self.column_names)
                 patient = filename[:-4]
                 self.time_series_data[patient] = df
-                
+                df = df.ffill().bfill().fillna(0)
+                val_array = df.values.astype(float)
+                self.time_series_data_processed[patient] = val_array
+        
+        # normalize
+        mean = jnp.mean(jnp.concatenate(list(self.time_series_data_processed.values()), axis=0), axis=0)
+        std = jnp.std(jnp.concatenate(list(self.time_series_data_processed.values()), axis=0), axis=0)
+        for patient in self.patients:
+            self.time_series_data_processed[patient] = (self.time_series_data_processed[patient] - mean) / std
+            
+        ninety_idx = int(0.9 * len(self.patients))
+        self.train = Subset(self, 0, ninety_idx)
+        self.test = Subset(self, ninety_idx, len(self.patients))
+        
+    def __len__(self):
+        return len(self.patients)
+    
+    def __getitem__(self, idx):
+        patient = self.patients[idx]
+        outcome = self.outcomes[idx]
+        obs = self.time_series_data_processed[patient]
+        ts = jnp.linspace(0, len(obs) - 1, len(obs)).astype(float)
+        return ts, obs, outcome
+    
     def _plot_distributions_for_each_column_with_outcomes(self):
         num_columns = len(self.column_names)
         num_rows = (num_columns + 3) // 4  
@@ -72,6 +110,20 @@ class SepsisDataset:
             axes[i].legend()
         
         plt.tight_layout()
+        plt.show()
+        
+    def distribution_of_number_of_timepoints(self):
+        timepoint_counts = []
+        for patient in self.patients:
+            df = self.time_series_data[patient]
+            timepoint_counts.append(len(df))
+        
+        plt.figure(figsize=(10, 6))
+        plt.hist(timepoint_counts, bins=100, color='skyblue', edgecolor='black', range=(0, 100))
+        plt.title('Distribution of Number of Timepoints per Patient')
+        plt.xlabel('Number of Timepoints')
+        plt.ylabel('Number of Patients')
+        plt.grid(axis='y', linestyle='--', alpha=0.7)
         plt.show()
         
     def bar_plot_of_missing_values(self):
