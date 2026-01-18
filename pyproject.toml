@@ -5,13 +5,18 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "ase>=3.27.0",
     "diffrax>=0.7.0",
+    "imageio>=2.37.2",
     "ipykernel>=7.1.0",
+    "ipympl>=0.9.8",
     "ipywidgets>=8.1.8",
     "jax[cuda12]>=0.8.0",
     "matplotlib>=3.10.7",
     "optax>=0.2.6",
     "pandas>=2.3.3",
+    "schnetpack>=2.1.1",
     "scikit-learn>=1.7.2",
+    "tk>=0.1.0",
     "tqdm>=4.67.1",
 ]
